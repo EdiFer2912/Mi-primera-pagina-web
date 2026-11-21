@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clínica Centla - Citas</title>
+<style>
+body{font-family:Arial;background:#eef6ff;margin:0;padding:20px}
+h1{text-align:center;color:#0a5cad}
+.card{background:white;max-width:600px;margin:auto;padding:20px;border-radius:12px;box-shadow:0 2px 10px #ccc}
+input,select,textarea{width:100%;padding:10px;margin:6px 0;border:1px solid #ccc;border-radius:8px;box-sizing:border-box}
+button{width:100%;padding:12px;background:#0a5cad;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer}
+table{width:100%;margin-top:20px;border-collapse:collapse;background:white}
+th,td{border:1px solid #ddd;padding:8px;text-align:left}
+th{background:#0a5cad;color:white}
+</style>
+</head>
+<body>
+<h1>🏥 Clinica Centla</h1>
+<div class="card">
+<h2>Agendar Cita</h2>
+<input id="nombre" placeholder="Nombre del paciente">
+<input id="comunidad" placeholder="Comunidad (ej. Frontera)">
+<input id="telefono" placeholder="Teléfono">
+<input type="date" id="fecha">
+<input type="time" id="hora">
+<select id="doctor"><option value="">Cargando doctores...</option></select>
+<textarea id="motivo" placeholder="Motivo de consulta"></textarea>
+<button onclick="guardar()">Agendar Cita</button>
+<p id="msg"></p>
+</div>
+
+<div class="card" style="margin-top:20px">
+<h2>Citas Agendadas</h2>
+<table><thead><tr><th>Paciente</th><th>Fecha</th><th>Hora</th><th>Doctor</th></tr></thead><tbody id="lista"></tbody></table>
+</div>
+
+<script>
+async function cargarDoctores(){
+  let r = await fetch('obtener_doctores.php');
+  let d = await r.json();
+  let sel = document.getElementById('doctor');
+  sel.innerHTML = '<option value="">Selecciona doctor</option>';
+  d.forEach(doc => { sel.innerHTML += `<option value="${doc.id}">${doc.nombre} - ${doc.especialidad}</option>`; });
+}
+async function cargarCitas(){
+  let r = await fetch('obtener_citas.php');
+  let d = await r.json();
+  let t = document.getElementById('lista');
+  t.innerHTML = '';
+  d.forEach(c => { t.innerHTML += `<tr><td>${c.nombre}</td><td>${c.fecha}</td><td>${c.hora}</td><td>${c.doctor_nombre || ''}</td></tr>`; });
+}
+async function guardar(){
+  let datos = new FormData();
+  datos.append('nombre', document.getElementById('nombre').value);
+  datos.append('comunidad', document.getElementById('comunidad').value);
+  datos.append('telefono', document.getElementById('telefono').value);
+  datos.append('fecha', document.getElementById('fecha').value);
+  datos.append('hora', document.getElementById('hora').value);
+  datos.append('doctor_id', document.getElementById('doctor').value);
+  datos.append('motivo', document.getElementById('motivo').value);
+  let r = await fetch('guardar_cita.php', {method:'POST', body:datos});
+  let txt = await r.text();
+  if(txt.trim() === 'OK'){ document.getElementById('msg').innerHTML = '✅ Cita guardada'; cargarCitas(); }
+  else if(txt.trim() === 'OCUPADO'){ document.getElementById('msg').innerHTML = '⚠️ Ese doctor ya tiene cita a esa hora'; }
+  else { document.getElementById('msg').innerHTML = '❌ Error: ' + txt; }
+}
+cargarDoctores(); cargarCitas();
+</script>
+</body>
+</html>
